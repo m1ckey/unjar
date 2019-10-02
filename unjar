@@ -1,0 +1,41 @@
+#!/bin/bash
+
+if [ -z "$1" -o -z "$2" ]; then
+	echo "usage: $0 [options] <jars> <outdir>"
+	echo "example: $0 lib/other.jar app.jar src"
+	echo 
+	echo "if JAVA_DECOMPILER_JAR is set, this JetBrains decompiler will be used"
+	echo "otherwise the script will try to find a java-decompiler.jar"
+	echo
+	echo "all arguments are passed to the decompiler"
+	exit 1
+fi
+
+
+if [ -n "$JAVA_DECOMPILER_JAR" ]; then
+	echo "using provided java-decompiler.jar: $JAVA_DECOMPILER_JAR"
+	_CP="$JAVA_DECOMPILER_JAR"
+else
+	echo "searching java-decompiler.jar"
+	_CP="$(find / -name java-decompiler.jar 2>/dev/null | tr '\n' ':')"
+	if [ -z "$_CP" ]; then
+		echo "could not find java-decompiler.jar"
+		exit 1
+	fi
+	echo "using: "
+	echo "$_CP"
+fi
+
+# get last arg
+for SRC_DIR in $@; do :; done
+
+# decompile
+mkdir -p "$SRC_DIR"
+java -cp "$_CP" org.jetbrains.java.decompiler.main.decompiler.ConsoleDecompiler "$@"
+
+# extract
+cd "$SRC_DIR"
+for jar in *.jar; do
+	jar -xf $jar
+	rm $jar
+done
